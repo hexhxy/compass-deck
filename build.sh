@@ -10,6 +10,8 @@
 set -x
 COMPASS_DIR=${BASH_SOURCE[0]%/*}
 
+COMPASS_MODULE=(actions api apiclient utils db tasks deployment)
+
 yum update -y
 
 yum --nogpgcheck install -y which python python-devel git wget syslinux amqp mod_wsgi httpd bind rsync yum-utils gcc unzip openssl openssl098e ca-certificates mysql-devel mysql MySQL-python python-virtualenv python-setuptools python-pip bc libselinux-python libffi-devel openssl-devel vim net-tools
@@ -19,7 +21,7 @@ rm -rf $COMPASS_DIR/../compass-web/.git
 
 easy_install --upgrade pip
 easy_install --upgrade six
-pip install --upgrade pip
+pip install --upgrade pip==9.0.1
 pip install --upgrade setuptools
 pip install --upgrade virtualenv
 pip install --upgrade redis
@@ -46,14 +48,19 @@ cp -f $COMPASS_DIR/misc/apache/{ods-server.conf,http_pip.conf,images.conf,packag
 cp -rf $COMPASS_DIR/bin/* /opt/compass/bin/
 mkdir -p /var/www/compass
 ln -s -f /opt/compass/bin/compass_wsgi.py /var/www/compass/compass.wsgi
-cp -rf /usr/lib64/libcrypto.so.6 /usr/lib64/libcrypto.so
+# libcrypto.so.6 doesn't exist on arm64
+cp -rf /usr/lib64/libcrypto.so.6 /usr/lib64/libcrypto.so || true
 
 mkdir -p /var/log/compass
 chmod -R 777 /var/log/compass
 chmod -R 777 /opt/compass/db
 mkdir -p $COMPASS_DIR/compass
-mv $COMPASS_DIR/{actions,api,apiclient,utils,db,tasks,deployment} $COMPASS_DIR/compass/
+for((i=0; i<${#COMPASS_MODULE[@]}; i++))
+do
+    mv $COMPASS_DIR/${COMPASS_MODULE[i]} $COMPASS_DIR/compass/
+done
 touch $COMPASS_DIR/compass/__init__.py
+
 source `which virtualenvwrapper.sh`
 workon compass-core
 cd /root/compass-deck
